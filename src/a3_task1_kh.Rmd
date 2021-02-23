@@ -1,0 +1,75 @@
+---
+title: 'Assignment 3 Task 1: Spatial data visualization'
+author: "Kirsten Hodgson"
+date: "2/22/2021"
+output: 
+  html_document:
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+library(tidyverse)
+library(here)
+library(janitor)
+library(sf)
+library(tmap)
+library(viridis)
+```
+
+```{r,  = FALSE}
+#Read in the oil spill layer:
+ca_oilspill <- read_sf(here("data", "ds394"), layer = "ds394") %>% 
+  clean_names() %>% 
+  rename(name = localecoun)
+
+#Check the projection:
+#st_crs(ca_oilspill) #NAD 83 / California Albers, EPSG 3310
+
+#Read in the CA county data shapefile
+ca_counties <- read_sf(here("data", "ca_counties"), layer = "CA_Counties_TIGER2016") %>% 
+  clean_names() %>% 
+  select(name)
+
+#Check projection
+#st_crs(ca_counties) #WGS 84 / Pseudo-Mercator
+#Reset projection
+ca_counties <- st_transform(ca_counties, st_crs(ca_oilspill))
+#st_crs(ca_counties)
+```
+
+### 1. Oil spill event locations exploration
+
+```{r}
+tmap_mode("view")
+
+tm_shape(ca_oilspill) +
+  tm_dots()
+```
+
+### 2. Chloropleth of inland oil spill events in 2008
+
+```{r}
+#Wrangling: Want counts of inland oil spill events by county in 2008
+modoc <- ca_counties %>% 
+  filter(name == "Modoc")
+
+ca_county_oilspill <- ca_counties %>% 
+  st_join(ca_oilspill)
+
+ca_oilspill_counts <- ca_county_oilspill %>% 
+  filter(inlandmari == "Inland") %>% 
+ group_by(name.y) %>% 
+  summarize(spill_count = n())
+  
+ggplot(data = ca_oilspill_counts) +
+  geom_sf(aes(fill = spill_count), color = "white", size = 0.1) +
+  scale_fill_viridis() +
+  theme_void() +
+  labs(fill = "Number of inland oil spills") +
+  geom_sf(data = modoc, fill = "lightgray", color = "white", size = 0.1)
+  
+  #scale_fill_gradientn(colors = c("lightgray", "orange", "red")) +
+```
+
