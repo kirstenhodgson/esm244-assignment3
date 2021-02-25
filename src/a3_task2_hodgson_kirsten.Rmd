@@ -13,9 +13,39 @@ library(tidyverse)
 library(sf)
 library(here)
 library(fasterize)
+library(rnaturalearth)
+library(RColorBrewer)
 
 cetaceanslist <- list.files(path = here("data", "ca_cetaceans"), pattern = "*.tif", full.names = TRUE)
 
 ca_raster <- raster::stack(cetaceanslist)
+
+land <- ne_download(scale = "medium", type = 'land', category = 'physical', returnclass = 'sf')
+```
+
+```{r}
+cetaceans_df <- raster::rasterToPoints(ca_raster) %>% 
+  as.data.frame()
+
+cetaceans_prob <- cetaceans_df %>% 
+  pivot_longer(cols = Balaenoptera_acutorostrata:Ziphius_cavirostris, 
+               names_to = "species",
+               values_to = "likelihood") %>% 
+  mutate(presence = case_when(likelihood >= 0.6 ~ 1,
+                              likelihood < 0.6 ~ 0)) %>% 
+  filter(presence == 1) %>% 
+  group_by(x,y) %>% 
+  count(presence)
+```
+
+```{r}
+ggplot() + 
+  geom_raster(data = cetaceans_prob, aes(x = x, y = y, fill = n)) +
+  geom_sf(data = land, color = "wheat3", fill = "wheat2") + 
+  coord_sf(xlim = c(-125,-115), ylim = c(32,38)) +
+  theme_minimal() +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank()) +
+  scale_fill_gradient(low = "steelblue1", high = "steelblue4")
 ```
 
