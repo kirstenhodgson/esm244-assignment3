@@ -1,0 +1,21 @@
+---
+title: 'Task 2: Raster data'
+author: "Kirsten Hodgson"
+date: "2/24/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(raster)
+library(tidyverse)
+library(sf)
+library(here)
+library(fasterize)
+
+cetaceanslist <- list.files(path = here("data", "ca_cetaceans"), pattern = "*.tif", full.names = TRUE)
+
+ca_raster <- raster::stack(cetaceanslist)
+```
+
